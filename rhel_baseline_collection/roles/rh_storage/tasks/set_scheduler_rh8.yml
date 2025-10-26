@@ -1,0 +1,21 @@
+---
+- name: Define scheduler rules for RHEL 8+
+  ansible.builtin.copy:
+    dest: /etc/udev/rules.d/60-ioschedulers.rules
+    content: |
+      ACTION=="add|change", KERNEL=="sd*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
+      ACTION=="add|change", KERNEL=="sd*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="none"
+    owner: root
+    group: root
+    mode: '0644'
+  register: udev_rules
+
+- name: Reload udev rules
+  ansible.builtin.command:
+    cmd: udevadm control --reload-rules
+  when: udev_rules.changed
+
+- name: Trigger udev rules
+  ansible.builtin.command:
+    cmd: udevadm trigger --type=devices --action=change
+  when: udev_rules.changed

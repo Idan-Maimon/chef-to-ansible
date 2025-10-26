@@ -1,0 +1,18 @@
+#Reposiroty Subscription
+rh_sub_hostname: 'caps01.dmz.example.com'
+rh_sub_org: 'DMZ_Organization'
+rh_sub_activation_key: 'ak-for-dmz'
+rh_sub_ca_package: 'katello-ca-consumer-caps01.dmz.example.com.noarch'
+rh_sub_content_caps: 'caps01'
+rh_sub_content_url: 'https://caps01/pulp/content/'
+
+#SELINUX
+selinux_state: 'disabled'
+selinux_policy: 'targeted'
+
+#FirewallD
+firewalld_policy: 'disabled'
+
+#Network Manager
+rh_network_manager_enabled: 'false'
+

@@ -1,0 +1,13 @@
+---
+# This task uses the 'ansible.builtin.service' module
+# to manage the state of the firewalld service.
+
+- name: Ensure firewalld service is in the correct state
+  ansible.builtin.service:
+    name: firewalld
+    
+    # 'state' and 'enabled' are based on the variable
+    state: >-
+      {{ (firewalld_policy == 'enabled') | ternary('started', 'stopped') }}
+    enabled: >-
+      {{ (firewalld_policy == 'enabled') | ternary(true, false) }}

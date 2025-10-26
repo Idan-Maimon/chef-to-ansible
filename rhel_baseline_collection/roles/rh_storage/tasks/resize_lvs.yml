@@ -1,0 +1,14 @@
+---
+- name: Ensure lv_var is 6G and filesystem is resized
+  community.general.lvol:
+    vg: rootvg
+    lv: lv_var
+    size: 6G
+    resizefs: true
+  
+- name: Ensure lv_varlog is 1G and filesystem is resized
+  community.general.lvol:
+    vg: rootvg
+    lv: lv_varlog
+    size: 1G
+    resizefs: true

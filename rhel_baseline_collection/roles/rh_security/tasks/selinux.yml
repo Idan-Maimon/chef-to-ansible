@@ -1,0 +1,35 @@
+- name: Configure SELinux state (live and persistent)
+  ansible.posix.selinux:
+    state: "{{ selinux_state }}"
+    policy: "{{ selinux_policy }}"
+
+# NOTE: Changing from 'disabled' to 'enforcing' (or vice-versa)
+# requires a reboot. This module will *not* reboot for you,
+# but it can trigger a "reboot" handler if you configure one.
+
+# Parameters for 'state':
+#
+#   enforcing: The SELinux security policy is enabled and actively
+#              enforced. Any violations are blocked and logged.
+#
+#   permissive: The SELinux security policy is enabled, but it
+#               only logs warnings instead of blocking actions.
+#               This is useful for debugging.
+#
+#   disabled: No SELinux policy is loaded or enforced.
+#
+# -----------------------------------------------------------------
+#
+# Parameters for 'policy':
+#
+#   targeted: (Default) Only "targeted" network services (like
+#             httpd, sshd, etc.) are protected.
+#
+#   mls: (Multi-Level Security) A much stricter and more
+#        complex policy that provides fine-grained security
+#        classifications.
+#
+#   minimum: A minimal SELinux policy, often used as a base
+#            for highly customized security policies.
+#
+# -----------------------------------------------------------------

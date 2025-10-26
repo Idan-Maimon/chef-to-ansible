@@ -1,0 +1,8 @@
+---
+- name: Apply RHEL Baseline Configuration
+  hosts: all
+  become: true
+  roles:
+    - role: rh_subscription
+    - role: rh_security
+    - role: rh_network

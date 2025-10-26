@@ -1,0 +1,10 @@
+---
+# roles/rh_security/tasks/bash_profile.yml
+- name: Ensure /root/.bash_profile is set to a clean, managed state
+  ansible.builtin.template:
+    src: root_bash_profile.j2
+    dest: /root/.bash_profile
+    owner: root
+    group: root
+    mode: '0644'
+

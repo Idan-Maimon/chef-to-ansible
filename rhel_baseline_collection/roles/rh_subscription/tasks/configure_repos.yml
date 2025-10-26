@@ -1,0 +1,38 @@
+---
+# - name: Install katello CA package
+#   ansible.builtin.yum:
+#     name: "https://{{ rh_sub_content_caps }}/pub/katello-ca-consumer-latest.noarch.rpm"
+#     state: present
+#     disable_gpg_check: true
+
+- name: Registering to the new Satellite
+  community.general.redhat_subscription:
+    state: present
+    server_hostname: "{{ rh_sub_hostname }}"
+    org_id: "{{ rh_sub_org }}"
+    activationkey: "RHEL{{ ansible_distribution_major_version }}{{ activation_key }}"
+
+- name: Disable GPG check in redhat.repo
+  ansible.builtin.replace:
+    path: /etc/yum.repos.d/redhat.repo
+    regexp: '^gpgcheck *= *1'
+    replace: 'gpgcheck = 0'
+  ignore_errors: true # Add this in case the file doesn't exist yet
+
+- name: Remove legacy repo files based on OS version
+  vars:
+    rhel_version: "{{ ansible_distribution_major_version }}"
+    globs_to_delete: >-
+      {% if rhel_version == '7' %}
+      [ '/etc/yum.repos.d/7Server*', '/etc/yum.repos.d/bnhp-rhel7*', '/etc/yum.repos.d/RedHat_7Server*', '/etc/yum.repos.d/rhel7*' ]
+      {% elif rhel_version == '8' %}
+      [ '/etc/yum.repos.d/8Server*' ]
+      {% elif rhel_version == '9' %}
+      [ '/etc/yum.repos.d/rhel9*' ]
+      {% else %}
+      []
+      {% endif %}
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_fileglob: "{{ globs_to_delete }}"

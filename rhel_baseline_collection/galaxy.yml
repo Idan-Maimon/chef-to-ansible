@@ -1,0 +1,14 @@
+---
+namespace: bnhp
+
+name: rhel_baseline
+
+version: 1.0.0
+
+description: "Ansible collection for RHEL baseline configuration, converted from Chef."
+
+authors:
+  - "Idan Maymon <imaymon@redhat.com>"
+
+# A file to use as the README.
+readme: README.md

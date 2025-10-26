@@ -1,0 +1,15 @@
+---
+# roles/rh_subscription/tasks/main.yml
+
+- name: Gather system subscription state
+  ansible.builtin.include_tasks: preflight.yml
+  tags: [subscription, preflight]
+
+- name: Cleanup old satellite configuration
+  ansible.builtin.include_tasks: cleanup.yml
+  when: rhsm_content is defined and 'cdn.redhat.com' not in rhsm_content
+  tags: [subscription, cleanup]
+
+- name: Configure post-registration settings
+  ansible.builtin.include_tasks: configure_repos.yml
+  tags: [subscription, configure]

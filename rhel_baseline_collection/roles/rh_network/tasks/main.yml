@@ -1,0 +1,39 @@
+---
+# If rh_network_manager_enabled=true or rhel >= 9
+- name: Enable NetworkManager (RHEL 9+ or as requested)
+  tags: network
+  when: rh_network_manager_enabled or (ansible_distribution_major_version | int >= 9)
+  block:
+    - name: Ensure NetworkManager package is installed
+      ansible.builtin.package:
+        name: NetworkManager
+        state: present
+
+    - name: Ensure NetworkManager service is enabled and started
+      ansible.builtin.service:
+        name: NetworkManager
+        state: started
+        enabled: true
+
+# This is the 'else' block
+- name: Disable/Remove NetworkManager (Legacy)
+  tags: network
+  when: not (rh_network_manager_enabled or (ansible_distribution_major_version | int >= 9))
+  block:
+    - name: Stop and disable NetworkManager service
+      ansible.builtin.service:
+        name: NetworkManager
+        state: stopped
+        enabled: false
+
+    - name: Gather package facts
+      ansible.builtin.package_facts:
+        manager: rpm
+      register: package_list
+
+    #Remove NetworkManager only if cockpit is not installed
+    - name: Remove NetworkManager package
+      ansible.builtin.package:
+        name: NetworkManager
+        state: absent
+      when: "'cockpit' not in package_list.packages"

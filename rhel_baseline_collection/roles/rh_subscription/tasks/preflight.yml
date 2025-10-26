@@ -1,0 +1,28 @@
+---
+- name: Verify connectivity to the correct Satellite server
+  ansible.builtin.wait_for:
+    host: "{{ rh_sub_content_caps }}"
+    port: 443
+    connect_timeout: 2
+    timeout: 5
+
+- name: Get rhsm.conf content to check registration status
+  ansible.builtin.slurp:
+    src: /etc/rhsm/rhsm.conf
+  register: rhsm_conf_file
+  # We ignore errors in case the file doesn't exist
+  ignore_errors: true
+
+- name: Decode rhsm.conf content
+  ansible.builtin.set_fact:
+    rhsm_content: "{{ rhsm_conf_file.content | b64decode }}"
+  when: rhsm_conf_file.content is defined
+
+
+
+# - name: Debug subscription check
+#   ansible.builtin.debug:
+#         msg:
+#           - "Value of 'rh_sub_content_caps': {{ rh_sub_content_caps }}"
+#           - "String we are searching for: https://{{ rh_sub_content_caps }}/pulp/content/"
+#           - "Final boolean result ('not in'): {{ ('https://' + rh_sub_content_caps + '/pulp/content/') not in rhsm_content }}"

@@ -1,0 +1,27 @@
+---
+#--- BLOCK: Run cleanup tasks ---
+- name: Clean up old Satellite configuration
+  when: rh_sub_content_url not in rhsm_content
+  block:
+    - name: Clean subscription-manager cache (old-sat)
+      ansible.builtin.command:
+        cmd: subscription-manager clean
+      changed_when: true
+      ignore_errors: true # OK if it fails (e.g., already clean)
+
+    - name: Remove all local subscriptions (old-sat)
+      ansible.builtin.command:
+        cmd: subscription-manager remove --all
+      changed_when: true
+      ignore_errors: true
+
+    - name: Unregister from old Satellite
+      ansible.builtin.command:
+        cmd: subscription-manager unregister
+      changed_when: true
+      ignore_errors: true
+
+    - name: Ensure old Katello CA package is removed
+      ansible.builtin.package:
+        name: katello-ca-consumer-{{ rh_sub_content_caps }}
+        state: absent

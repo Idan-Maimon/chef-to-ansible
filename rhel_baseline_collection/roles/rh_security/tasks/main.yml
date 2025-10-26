@@ -1,0 +1,16 @@
+---
+- name: Setting bash profile
+  ansible.builtin.include_tasks: bash_profile.yml
+  tags: [security, bash_profile]
+
+- name: Setting SElinux
+  ansible.builtin.include_tasks: selinux.yml
+  tags: [security, selinux]
+
+- name: Setting firewalld
+  ansible.builtin.include_tasks: firewalld.yml
+  tags: [security, firewalld]
+
+- name: Installing xauth
+  ansible.builtin.include_tasks: xauth.yml
+  tags: [security, xauth]

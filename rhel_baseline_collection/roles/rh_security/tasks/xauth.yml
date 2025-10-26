@@ -1,0 +1,7 @@
+---
+#Install xauth package only if OS is RHEL/CentOS/Fedora
+- name: Ensure xauth is installed (for X11 Forwarding)
+  ansible.builtin.package:
+    name: xauth
+    state: present
+  when: ansible_os_family == 'RedHat'
