@@ -159,36 +159,34 @@
 
 
 
-
-
 # # --- RHEL 7 Specific Tasks ---
-# - name: Configure Grub and init (RHEL 7)
-#   when: ansible_distribution_major_version == '7'
-#   block:
-#     - name: Set permissions on grub.cfg
-#       ansible.builtin.file:
-#         # Path differs slightly from Chef (/boot/grub2 vs /etc)
-#         path: /boot/grub2/grub.cfg
-#         owner: root
-#         group: root
-#         mode: '0600'
-#         # manage_symlink_source might be handled by follow: yes (default)
+- name: Configure Grub and init (RHEL 7)
+  when: ansible_distribution_major_version == '7'
+  block:
+    - name: Set permissions on grub.cfg
+      ansible.builtin.file:
+        # Path differs slightly from Chef (/boot/grub2 vs /etc)
+        path: /boot/grub2/grub.cfg
+        owner: root
+        group: root
+        mode: '0600'
+        # manage_symlink_source might be handled by follow: yes (default)
 
-#     - name: Deploy grub user.cfg
-#       ansible.builtin.template:
-#         src: user-rhel7.cfg.j2 # Chef used user-rhel7.erb
-#         dest: /boot/grub2/user.cfg
-#         owner: root
-#         group: root
-#         mode: '0600'
+    - name: Deploy grub user.cfg
+      ansible.builtin.template:
+        src: user-rhel7.cfg.j2 # Chef used user-rhel7.erb
+        dest: /boot/grub2/user.cfg
+        owner: root
+        group: root
+        mode: '0600'
 
-#     - name: Deploy /etc/sysconfig/init
-#       ansible.builtin.template:
-#         src: init-rhel7.sysconfig.j2 # Chef used init-rhel7.erb
-#         dest: /etc/sysconfig/init
-#         owner: root
-#         group: root
-#         mode: '0644'
+    - name: Deploy /etc/sysconfig/init
+      ansible.builtin.template:
+        src: init-rhel7.sysconfig.j2 # Chef used init-rhel7.erb
+        dest: /etc/sysconfig/init
+        owner: root
+        group: root
+        mode: '0644'
 
 # # --- RHEL 6 Specific Tasks ---
 # - name: Configure Grub and init (RHEL 6)

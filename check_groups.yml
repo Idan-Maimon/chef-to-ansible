@@ -4,7 +4,7 @@
   hosts: all
   
   # We don't need to gather facts (like CPU, memory) for this simple task
-  gather_facts: false
+  gather_facts: true
   
   # This makes the output cleaner by running on one host at a time
   serial: 1
