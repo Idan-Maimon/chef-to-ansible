@@ -85,12 +85,12 @@
         mode: '0640'
       loop:
         - {template: 'auditd-conf-rhel', dest: 'auditd.conf'}
-        - {template: 'auditd-harden-rules-rhel', dest: '/etc/audit/rules.d/harden.rules'}
-        - {template: '50-user_emulation.rules', dest: '/etc/audit/rules.d/50-user_emulation.rules'}
-        - {template: '50-kernel_modules.rules', dest: '/etc/audit/50-kernel_modules.rules'}
-        - {template: '50-login.rules', dest: '/etc/audit/50-login.rules'}
-        - {template: '50-MAC-policy.rules', dest: '/etc/audit/rules.d/50-MAC-policy.rules'}
-        - {template: '50-perm_mod.rules', dest: '/etc/audit/rules.d/50-perm_mod.rules'}
+        - {template: 'auditd-harden-rules-rhel', dest: 'rules.d/harden.rules'}
+        - {template: '50-user_emulation.rules', dest: 'rules.d/50-user_emulation.rules'}
+        - {template: '50-kernel_modules.rules', dest: 'rules.d/50-kernel_modules.rules'}
+        - {template: '50-login.rules', dest: 'rules.d/50-login.rules'}
+        - {template: '50-MAC-policy.rules', dest: 'rules.d/50-MAC-policy.rules'}
+        - {template: '50-perm_mod.rules', dest: 'rules.d/50-perm_mod.rules'}
 
     - name: Configure rsyslog (RHEL 8+)
       ansible.builtin.template:
@@ -99,18 +99,18 @@
         owner: root
         group: root
         mode: '0644'
-      when: "'rsyslog' in group_names"
+      when: "'rsyslog' not in group_names"
       notify: restart rsyslog
       vars:
         log_config_type: "{{ 'production' if inventory_hostname.lower().startswith('p') else 'test' }}"
 
-#     - name: Deploy system-wide umask config
-#       ansible.builtin.template:
-#         src: 50-systemwide_umask.sh.j2
-#         dest: /etc/profile.d/50-systemwide_umask.sh
-#         owner: root
-#         group: root
-#         mode: '0640'
+    - name: Deploy system-wide umask config
+      ansible.builtin.template:
+        src: 50-systemwide_umask.sh.j2
+        dest: /etc/profile.d/50-systemwide_umask.sh
+        owner: root
+        group: root
+        mode: '0640'
 
     - name: Deploy pwquality config
       ansible.builtin.template:
@@ -159,14 +159,14 @@
 
 
 
-# # --- RHEL 7 Specific Tasks ---
+# --- RHEL 7 Specific Tasks ---
 - name: Configure Grub and init (RHEL 7)
   when: ansible_distribution_major_version == '7'
   block:
     - name: Set permissions on grub.cfg
       ansible.builtin.file:
         # Path differs slightly from Chef (/boot/grub2 vs /etc)
-        path: /boot/grub2/grub.cfg
+        path: /etc/grub2.cfg
         owner: root
         group: root
         mode: '0600'
@@ -174,7 +174,7 @@
 
     - name: Deploy grub user.cfg
       ansible.builtin.template:
-        src: user-rhel7.cfg.j2 # Chef used user-rhel7.erb
+        src: user-rhel7.j2 # Chef used user-rhel7.erb
         dest: /boot/grub2/user.cfg
         owner: root
         group: root
@@ -182,63 +182,121 @@
 
     - name: Deploy /etc/sysconfig/init
       ansible.builtin.template:
-        src: init-rhel7.sysconfig.j2 # Chef used init-rhel7.erb
+        src: init-rhel7.j2 # Chef used init-rhel7.erb
         dest: /etc/sysconfig/init
         owner: root
         group: root
         mode: '0644'
 
-# # --- RHEL 6 Specific Tasks ---
-# - name: Configure Grub and init (RHEL 6)
-#   when: ansible_distribution_major_version == '6'
+    - name: Deploy sysctl configuration based on standard
+      ansible.builtin.template:
+        # This Jinja block will render as a clean string: "sysctl-rhel8.j2"
+        # The template module will then correctly find it in the templates/ dir.
+        src: >-
+          {%- if 'sap' in group_names -%}
+          sysctl-rhel7-SAP.j2
+          {%- elif 'el' in group_names -%}
+          sysctl-rhel7-EL.j2
+          {%- else -%}
+          sysctl-rhel7.j2
+          {%- endif -%}
+        dest: /etc/sysctl.d/90-chef.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: reload sysctl
+
+    - name: Configure rsyslog (RHEL 7)
+      ansible.builtin.template:
+        src: "rsyslog-{{ log_config_type }}-rhel7.j2"
+        dest: /etc/rsyslog.conf
+        owner: root
+        group: root
+        mode: '0644'
+      when: "'rsyslog' not in group_names"
+      notify: restart rsyslog
+      vars:
+        log_config_type: "{{ 'production' if inventory_hostname.lower().startswith('p') else 'test' }}"
+
+# --- RHEL 6 Specific Tasks ---
+- name: Configure Grub and init (RHEL 6)
+  when: ansible_distribution_major_version == '6'
+  block:
+    - name: Set permissions on grub.cfg
+      ansible.builtin.file:
+        path: /etc/grub.cfg # RHEL 6 path
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Deploy /etc/sysconfig/init
+      ansible.builtin.template:
+        src: init-rhel6.j2 # Chef used init-rhel6.erb
+        dest: /etc/sysconfig/init
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Deploy /etc/sysctl.conf
+      ansible.builtin.template:
+        src: sysctl-rhel6.j2
+        dest: /etc/sysctl.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Configure rsyslog (RHEL 6)
+      ansible.builtin.template:
+        src: "rsyslog-rhel6.j2"
+        dest: /etc/rsyslog.conf
+        owner: root
+        group: root
+        mode: '0644'
+      when: 
+        - "'rsyslog' not in group_names"
+        - "inventory_hostname.lower().startswith('p')"
+      notify: restart rsyslog
+
+
+
+
+# --- Clean up legacy files ---
+# - name: Remove insecure legacy auth files from all home directories
 #   block:
-#     - name: Set permissions on grub.conf
-#       ansible.builtin.file:
-#         path: /boot/grub/grub.conf # RHEL 6 path
-#         owner: root
-#         group: root
-#         mode: '0600'
+- name: Get list of all user accounts
+  ansible.builtin.getent:
+    database: passwd
+  register: passwd_entries 
 
-#     - name: Deploy /etc/sysconfig/init
-#       ansible.builtin.template:
-#         src: init-rhel6.sysconfig.j2 # Chef used init-rhel6.erb
-#         dest: /etc/sysconfig/init
-#         owner: root
-#         group: root
-#         mode: '0644'
+# - name: Display the home directories found
+#   ansible.builtin.debug:
+#     var: passwd_entries
 
-# # --- Sysctl Configuration (Uses System Role) ---
-# - name: Configure sysctl settings using system role
-#   ansible.builtin.include_role:
-#     name: ansible.posix.sysctl
-#   vars:
-#     # Build template name based on OS version and profile variable
-#     sysctl_template_src: >-
-#       sysctl-rhel{{ ansible_distribution_major_version }}-{{ os_hardening_sysctl_profile | upper }}.conf.j2
+- name: Create a list of just the home directories
+  ansible.builtin.set_fact:
+    # Use the correct variable 'passwd_entries'
+    home_dirs: "{{ passwd_entries.ansible_facts.getent_passwd.values() | map(attribute=4) | unique | list }}"
 
-#     sysctl_file_settings:
-#       - name: 90-ansible-hardening.conf # Use a descriptive name
-#         template_src: "{{ sysctl_template_src }}"
-#         state: present
-#   # Define templates like templates/sysctl-rhel8-STANDARD.conf.j2 etc.
+# - name: Display the home directories found
+#   ansible.builtin.debug:
+#     var: home_dirs
 
-# # --- Clean up legacy files ---
-# - name: Get list of user home directories
-#   ansible.builtin.getent:
-#     database: passwd
-#   register: passwd_entries
+- name: Remove system-wide legacy auth files
+  ansible.builtin.file:
+    path: "{{ item[0] }}/{{ item[1] }}"
+    state: absent
+  with_nested:
+    - "{{ home_dirs }}"
+    - [ ".rhosts", ".netrc", ".shosts" ]
 
-# - name: Remove insecure legacy files from home directories
-#   ansible.builtin.file:
-#     path: "{{ item.1.split(':')[5] }}/{{ item.0 }}" # item.1 is passwd line
-#     state: absent
-#   loop: "{{ ['.rhosts', '.netrc', '.shosts'] | product(passwd_entries.ansible_facts.getent_passwd.values()) | list }}"
-#   when: item.1.split(':')[5] != '/' and item.1.split(':')[5] != '' # Avoid root and invalid homes
+# - name: Display the final list
+#   ansible.builtin.debug:
+#     var: home_dirs
 
-# - name: Remove system-wide legacy auth files
-#   ansible.builtin.file:
-#     path: "{{ item }}"
-#     state: absent
-#   loop:
-#     - /etc/hosts.equiv
-#     - /etc/shosts.equiv
+- name: Remove system-wide legacy auth files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/hosts.equiv
+    - /etc/shosts.equiv
