@@ -1,0 +1,4 @@
+# === rh_os_hardening ===
+#01_packages.yml 
+required_packages:
+  - samba

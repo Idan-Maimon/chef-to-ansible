@@ -1,0 +1,53 @@
+---
+# This handles the 'authconfig --passalgo=sha512'
+- name: Set password hashing algorithm
+  ansible.builtin.command:
+    cmd: authconfig --passalgo=sha512 --update
+  when:
+    - ansible_distribution_major_version | int < 8
+    - "'sha512' not in authconfig_test.stdout"
+  register: authconfig_test
+  changed_when: false
+  check_mode: no
+  precomputed_args:
+    authconfig_test:
+      command: authconfig --test
+      changed_when: false
+      check_mode: no
+
+- name: Ensure root user GID is 0
+  ansible.builtin.command:
+    cmd: usermod -g 0 root
+  when: root_gid.stdout != '0'
+  changed_when: true
+  register: root_gid
+  precomputed_args:
+    root_gid:
+      command: "grep '^root:' /etc/passwd | cut -f4 -d:"
+      changed_when: false
+      check_mode: no
+
+# This replaces ALL the template logic for system-auth, password-auth, etc.
+- name: Configure PAM using system role
+  ansible.builtin.include_role:
+    name: ansible.posix.pam
+  vars:
+    pam_services:
+      # These settings come from the rhel7/8 templates
+      password-auth:
+        - type: password
+          control: requisite
+          module_path: pam_pwquality.so
+          module_args: "try_first_pass local_users_only retry=3 authtok_type="
+        - type: password
+          control: sufficient
+          module_path: pam_unix.so
+          module_args: "sha512 shadow nullok try_first_pass use_authtok"
+        # ... etc
+      system-auth:
+        # ...
+      su:
+        - type: auth
+          control: required
+          module_path: pam_wheel.so
+          module_args: "use_uid"

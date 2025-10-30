@@ -1,0 +1,5 @@
+### THIS FILE IS GENERATED AND CONTROLE BY Ansible
+### cookbook > bnhp-os-hardening
+
+-a always,exit -F arch=b64 -S create_module,init_module,delete_module,query_module,finit_module -F auid>=1000 -F auid!=-1 -F key=kernel_modules
+-a always,exit -S all -F path=/usr/bin/kmod -F perm=x -F auid>=1000 -F auid!=-1 -F key=kernel_modules

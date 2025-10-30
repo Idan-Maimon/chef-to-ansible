@@ -1,0 +1,125 @@
+---
+# Manage shell settings in /etc/bashrc and /etc/profile
+
+- name: Set TMOUT in /etc/bashrc
+  ansible.builtin.lineinfile:
+    path: /etc/bashrc
+    regexp: '^\[ -n "\${TMOUT\+x}" \]' # Match start of line
+    line: '[ -n "${TMOUT+x}" ] || readonly TMOUT={{ os_hardening_shell_timeout }}; export TMOUT'
+    state: present
+    backup: true
+
+- name: Remove old TMOUT entries from /etc/bashrc
+  ansible.builtin.lineinfile:
+    path: /etc/bashrc
+    regexp: '^TMOUT='
+    state: absent
+
+- name: Set umask 027 in /etc/bashrc
+  ansible.builtin.replace:
+    path: /etc/bashrc
+    regexp: '^\s*umask\s+022' # Match existing umask 022 line
+    replace: 'umask 027'
+    backup: true
+
+- name: Set umask 027 in /etc/profile
+  ansible.builtin.replace:
+    path: /etc/profile
+    regexp: '^\s*umask\s+022' # Match existing umask 022 line
+    replace: 'umask 027'
+    backup: true
+
+- name: Set TMOUT in /etc/profile (legacy?)
+  ansible.builtin.lineinfile:
+    path: /etc/profile
+    regexp: '^declare -xr TMOUT='
+    line: 'declare -xr TMOUT={{ os_hardening_shell_timeout }}'
+    state: present
+    backup: true
+  # Note: Setting TMOUT in both files might be redundant, check if needed.
+
+- name: Set Bash prompt based on environment
+  ansible.builtin.replace:
+    path: /etc/bashrc
+    regexp: '^(\s*\[ "\$PS1" =.*\] \&\& PS1=).*$' # Find existing PS1 line
+    # Use different colors for prod vs non-prod based on variable
+    replace: '\1"{{ os_hardening_prod_prompt if os_hardening_is_prod else os_hardening_test_prompt }}"'
+    backup: true
+  vars:
+    os_hardening_prod_prompt: '[\\u@\\[\\e[1;97;41m\\]\\h\\[\\e[0m\\] \\W]\\$' # Red background
+    os_hardening_test_prompt: '[\\u@\\[\\e[1;97;44m\\]\\h\\[\\e[0m\\] \\W]\\$' # Blue background
+
+- name: Configure Bash History settings
+  ansible.builtin.blockinfile:
+    path: /etc/bashrc
+    block: |
+      # History settings (Managed by Ansible)
+      export HISTTIMEFORMAT="%d/%m/%y %T  "
+      HISTFILESIZE=
+      HISTSIZE=
+      HISTCONTROL=ignoredups
+      shopt -s histappend
+      shopt -s cmdhist
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - History"
+    backup: true
+
+- name: Configure BigFix aliases
+  ansible.builtin.blockinfile:
+    path: /etc/bashrc
+    block: |
+      # BigFix Aliases (Managed by Ansible)
+      alias bflog="tail -f /var/opt/BESClient/__BESData/__Global/Logs/`date +'%Y%m%d'`.log"
+      alias bfdir="cd /var/opt/BESClient/"
+      alias bfrestart="/etc/init.d/besclient restart"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - BigFix Aliases"
+    backup: true
+
+- name: Deploy disk usage alert script
+  ansible.builtin.template:
+    # Assuming you copied disk-usage-alert.erb to templates/disk-usage-alert.sh.j2
+    src: disk-usage-alert.sh.j2
+    dest: /opt/.disk-usage-alert.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Add disk usage alert to bashrc
+  ansible.builtin.blockinfile:
+    path: /etc/bashrc
+    block: |
+      # Disk-usage-alert (Managed by Ansible)
+      if [ "$SSH_TTY" ]
+      then
+           /opt/.disk-usage-alert.sh
+      fi
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Disk Usage Alert"
+    backup: true
+
+- name: Manage needs-restarting script (RHEL 7+)
+  when: ansible_distribution_major_version | int > 6 # Chef used > 7, but logic implies >= 7
+  block:
+    - name: Ensure yum-utils is installed
+      ansible.builtin.package:
+        name: yum-utils
+        state: present
+
+    - name: Deploy needs-restarting script
+      ansible.builtin.template:
+        # Assumes needs-restarting-prod/test.erb copied to templates/
+        src: "{{ 'needs-restarting-prod.sh.j2' if os_hardening_is_prod else 'needs-restarting-test.sh.j2' }}"
+        dest: /opt/.needs-restarting.sh
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Add needs-restarting to bashrc
+      ansible.builtin.blockinfile:
+        path: /etc/bashrc
+        block: |
+          # needs-restarting check (Managed by Ansible)
+          if [ "$SSH_TTY" ]
+          then
+               /opt/.needs-restarting.sh
+          fi
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Needs Restarting"
+        backup: true

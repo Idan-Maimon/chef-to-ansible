@@ -1,0 +1,108 @@
+---
+# Defaults for rh_os_hardening
+
+# === 01_packages.yml ===
+
+# Packages to ensure are installed
+rh_os_hardening_packages_install_rhel7:
+  - tcp_wrappers
+  - rsyslog
+  - cronie-anacron
+
+rh_os_hardening_packages_install_rhel8_plus:
+  - rsyslog
+  - cronie-anacron
+
+# List of packages to remove
+# We assume Chef 'roles' (e.g., node.role?('hadoop_role')) map to Ansible 'groups'
+baseline_packages_to_remove:
+  - setroubleshoot
+  - samba
+  - dhcp
+  - mcstrans
+  - vsftpd
+  - dovecot
+  - bind
+  - openldap-servers
+  - rsh
+  - rsh-server
+  - ypbind
+  - ypserv
+  - tftp
+  - tftp-server
+  - talk
+  - talk-server
+  - xinetd
+  - xorg-x11-server-common
+  - ppp
+  - ppp-devel
+  - libvncserver
+  - bluez
+  - telnet-server
+  - telnet
+  - openldap-clients
+  - nc
+  - squid
+  - net-snmp
+  - httpd
+
+
+# This group provides a blanket exception for all removals
+rh_os_hardening_exception_group: "hadoop_role"
+
+# Backup directory for httpd.conf
+rh_os_hardening_httpd_backup_dir: "/var/ansible/backup/"
+
+# === 02_services.yml ===
+
+# Services to ensure are enabled and running
+rh_os_hardening_services_ensure_running:
+  - rsyslog
+  - crond
+
+# Services to ensure are stopped and disabled
+rh_os_hardening_services_disable_default:
+  - rwalld
+  - ruserd
+  - rwhod
+  - rstatd
+  - rhnsd
+  - chargen-dgram
+  - chargen-stream
+  - daytime-dgram
+  - daytime-stream
+  - echo-dgram
+  - echo-stream
+  - tcpmux-server
+  - avahi-daemon
+  - cups
+  - unbound-anchor.timer
+  - bluetooth.service
+
+# Services to disable if 'nfs_enabled' is false
+rh_os_hardening_services_disable_nfs:
+  - nfslock
+  - rpcgssd
+  - rpcbind
+  - rpcidmapd
+  - rpcsvcgssd
+
+# This replaces the Chef node attribute
+rh_os_hardening_nfs_disable: true
+
+
+# === 03_kernel_modules.yml ===
+# List of kernel modules to disable via /etc/modprobe.d/CIS.conf
+rh_os_hardening_kernel_modules_disable:
+  - hfs
+  - cramfs
+  - freevxfs
+  - jffs2
+  - hfsplus
+  - squashfs
+  - udf
+  - dccp
+  - sctp
+  - rds
+  - tipc
+  - usb-storage

@@ -1,0 +1,27 @@
+---
+- name: Include package control tasks
+  ansible.builtin.include_tasks: 01_packages.yml
+
+- name: Include service disabling tasks
+  ansible.builtin.include_tasks: 02_services.yml
+
+- name: Include kernel module blacklisting tasks
+  ansible.builtin.include_tasks: 03_kernel_modules.yml
+
+- name: Include file permission and template tasks
+  ansible.builtin.include_tasks: 04_file_permissions.yml
+
+# - name: Include fstab/mount configuration
+#   ansible.builtin.include_tasks: 05_mounts.yml
+
+# - name: Include shell environment hardening (bashrc, TMOUT)
+#   ansible.builtin.include_tasks: 06_shell_env.yml
+
+# - name: Include PAM configuration
+#   ansible.builtin.include_tasks: 07_pam.yml
+
+# - name: Include logging configuration
+#   ansible.builtin.include_tasks: 08_logging.yml
+
+# - name: Include user/group configuration
+#   ansible.builtin.include_tasks: 09_users.yml

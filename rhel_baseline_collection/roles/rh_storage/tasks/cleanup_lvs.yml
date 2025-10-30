@@ -1,28 +1,24 @@
 ---
-- name: Ensure old filesystems are unmounted
-  ansible.posix.mount:
-    path: "{{ item }}"
-    state: absent
-  with_items:
-    - /rhel_inst
-    - /tivoli_inst
-    - /tivoli
+- name: Ensure old LVs, filesystems, and fstab entries are removed
+  ansible.builtin.include_role:
+    name: linux-system-roles.storage
+  vars:
+    # This section finds the mount points, unmounts them,
+    # and removes them from /etc/fstab.
+    storage_mounts:
+      - path: /rhel_inst
+        state: absent
+      - path: /tivoli_inst
+        state: absent
+      - path: /tivoli
+        state: absent
 
-- name: Remove old LVs from /etc/fstab
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    regexp: '^{{ item }}'
-    state: absent
-  with_items:
-    - /dev/rootvg/lv_tivoli
-    - /dev/rootvg/lv_inst
-
-- name: Remove old LVs from rootvg
-  community.general.lvol:
-    vg: rootvg
-    lv: "{{ item }}"
-    state: absent
-    force: true # Equivalent to lvremove -f
-  with_items:
-    - lv_inst
-    - lv_tivoli
+    # This section removes the Logical Volumes themselves
+    # from the 'rootvg' pool.
+    storage_volumes:
+      - name: lv_inst
+        pool: rootvg
+        state: absent
+      - name: lv_tivoli
+        pool: rootvg
+        state: absen

@@ -1,0 +1,6 @@
+### THIS FILE IS GENERATED AND CONTROLE BY Ansible
+### cookbook > bnhp-os-hardening
+
+-a always,exit -F arch=b64 -C euid!=uid -F auid!=unset -S execve -k user_emulation 
+-a always,exit -F arch=b32 -C euid!=uid -F auid!=unset -S execve -k user_emulation 
+

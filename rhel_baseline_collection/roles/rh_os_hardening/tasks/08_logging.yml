@@ -1,0 +1,42 @@
+---
+- name: Install audispd-plugins (RHEL 8+)
+  ansible.builtin.package:
+    name: audispd-plugins
+    state: present
+  when: ansible_distribution_major_version | int >= 8
+
+- name: Configure and enable auditd syslog plugin
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: "^{{ item.regexp }} *="
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { path: '/etc/audisp/plugins.d/syslog.conf', regexp: 'active', line: 'active = yes' }
+    - { path: '/etc/audisp/plugins.d/syslog.conf', regexp: 'args', line: 'args = LOG_INFO LOG_LOCAL3' }
+    - { path: '/etc/audit/plugins.d/syslog.conf', regexp: 'active', line: 'active = yes' }
+    - { path: '/etc/audit/plugins.d/syslog.conf', regexp: 'args', line: 'args = LOG_INFO LOG_LOCAL3' }
+  notify: restart rsyslog
+
+# This one task replaces the rsyslog.conf templates from linux-file-control.rb AND
+# the complex logic from linux-remote-syslog.rb
+- name: Configure logging using system role
+  ansible.builtin.include_role:
+    name: ansible.posix.logging
+  vars:
+    # We get this from Satellite (Host Parameter or Group Var)
+    # e.g., "@@172.31.218.65:514"
+    logging_forward_servers:
+      - "{{ os_hardening_syslog_host | default('omitted') }}"
+
+- name: Ensure rsyslog is started
+  ansible.builtin.service:
+    name: rsyslog
+    state: started
+    enabled: true
+
+handlers:
+  - name: restart rsyslog
+    ansible.builtin.service:
+      name: rsyslog
+      state: restarted

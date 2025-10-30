@@ -1,0 +1,103 @@
+---
+# This task file only runs on Red Hat family systems
+- name: Manage system users and groups
+  when: ansible_os_family == 'RedHat'
+  block:
+    - name: Define lists of unwanted users and groups
+      ansible.builtin.set_fact:
+        unwanted_users:
+          - snapp
+          - guest
+          - games
+          - news
+          - gopher
+          - uucp
+          - nuucp
+          - ftp
+        unwanted_groups:
+          - snapp
+          - guest
+          - games
+          - news
+          - gopher
+          - uucp
+          - nuucp
+          - ftp
+
+    - name: Remove unwanted users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+        remove: true # Also remove home directories if they exist
+      loop: "{{ unwanted_users }}"
+      ignore_errors: true # Ignore if user doesn't exist
+
+    - name: Remove unwanted groups
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ unwanted_groups }}"
+      ignore_errors: true # Ignore if group doesn't exist
+
+    - name: Ensure 'adm' group exists with GID 4
+      ansible.builtin.group:
+        name: adm
+        gid: 4
+        state: present
+
+    - name: Ensure 'sugroup' group exists
+      ansible.builtin.group:
+        name: sugroup
+        state: present
+
+    - name: Define printer users and groups
+      ansible.builtin.set_fact:
+        printer_users: [ 'lp', 'lpd' ]
+        printer_groups: [ 'lp', 'lpd' ]
+
+    - name: Remove printer users (unless printer role assigned)
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+        remove: true
+      loop: "{{ printer_users }}"
+      # This mimics: not_if { node.role?('printers') }
+      # Assumes you have an inventory group named 'printers'
+      when: "'printers' not in group_names"
+      ignore_errors: true
+
+    - name: Remove printer groups (unless printer role assigned)
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ printer_groups }}"
+      when: "'printers' not in group_names"
+      ignore_errors: true
+
+    # RHEL 7.2 specific cleanup for postfix
+    - name: Manage postfix user/group on RHEL 7.2
+      when: ansible_distribution_version == '7.2'
+      block:
+        - name: Check for running postfix processes
+          ansible.builtin.shell: "pgrep postfix"
+          register: postfix_processes
+          changed_when: false
+          failed_when: false # rc=1 if no processes found
+
+        - name: Kill postfix processes
+          ansible.builtin.command: "pkill postfix"
+          when: postfix_processes.rc == 0
+          changed_when: true
+
+        - name: Remove postfix user
+          ansible.builtin.user:
+            name: postfix
+            state: absent
+            remove: true
+          ignore_errors: true
+
+        - name: Remove postfix group
+          ansible.builtin.group:
+            name: postfix
+            state: absent
+          ignore_errors: true

@@ -3,6 +3,7 @@
   hosts: all
   become: true
   roles:
-    - role: rh_subscription
-    - role: rh_security
-    - role: rh_network
+    # - role: rh_subscription
+    # - role: rh_security
+    # - role: rh_network
+    - role: rh_os_hardening

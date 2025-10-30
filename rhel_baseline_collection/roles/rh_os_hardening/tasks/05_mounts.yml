@@ -1,0 +1,41 @@
+---
+- name: Enforce secure mount options in /etc/fstab
+  ansible.builtin.include_role:
+    name: ansible.posix.mounts
+  vars:
+    mounts_mounts:
+      # /tmp
+      - path: /tmp
+        device: /dev/mapper/rootvg-lv_tmp
+        fstype: auto
+        options: "{{ (os_hardening_is_prod or 'hadoop_role' in group_names) | ternary('defaults', 'defaults,nosuid,nodev,noexec') }}"
+
+      # /home
+      - path: /home
+        device: /dev/mapper/rootvg-lv_home
+        fstype: auto
+        options: "{{ 'home' in group_names | ternary('defaults', 'defaults,nosuid,nodev') }}"
+      
+      # /var
+      - path: /var
+        device: /dev/mapper/rootvg-lv_var
+        fstype: auto
+        options: "{{ 'var' in group_names or 'hadoop_role' in group_names | ternary('defaults', 'defaults,nosuid,nodev') }}"
+
+      # /var/log
+      - path: /var/log
+        device: /dev/mapper/rootvg-lv_varlog
+        fstype: auto
+        options: "{{ (os_hardening_is_prod or 'hadoop_role' in group_names) | ternary('defaults', 'defaults,nosuid,nodev,noexec') }}"
+
+      # /var/log/audit
+      - path: /var/log/audit
+        device: /dev/mapper/rootvg-lv_varadt
+        fstype: auto
+        options: defaults,nosuid,nodev,noexec
+      
+      # /var/tmp (bind mount)
+      - path: /var/tmp
+        src: /tmp
+        fstype: none
+        options: "{{ (os_hardening_is_prod or 'hadoop_role' in group_names) | ternary('defaults', 'rw,nosuid,nodev,noexec,bind') }}"

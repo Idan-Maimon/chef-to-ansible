@@ -1,0 +1,18 @@
+- name: 03_kernel_modules | Ensure unwanted modules are disabled via /etc/modprobe.d/CIS.conf
+  ansible.builtin.blockinfile:
+    path: /etc/modprobe.d/CIS.conf
+    create: true
+    mode: '0644'
+    marker: "# {mark} ANSIBLE MANAGED KERNEL MODULES"
+    block: |
+      {% for module in rh_os_hardening_kernel_modules_disable %}
+      install {{ module }} /bin/false
+      {% endfor %}
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Blacklist unnecessary kernel modules
+  community.general.kernel_blacklist:
+    name: "{{ item }}"
+    state: present
+    blacklist_file: /etc/modprobe.d/cis_blacklist.conf
+  loop: "{{ rh_os_hardening_kernel_modules_disable }}"

@@ -1,0 +1,60 @@
+---
+- name: Install required packages
+  ansible.builtin.package:
+    name:
+      - rsyslog
+      - cronie-anacron
+      - tcp_wrappers
+    state: present
+  when: ansible_distribution_major_version | int < 8
+
+- name: Install required packages (RHEL 8+)
+  ansible.builtin.package:
+    name:
+      - rsyslog
+      - cronie-anacron
+    state: present
+  when: ansible_distribution_major_version | int >= 8
+
+
+- name: Calculate final list of packages to remove
+  ansible.builtin.set_fact:
+    final_packages_to_remove: "{{ baseline_packages_to_remove | difference(required_packages | default([])) }}"
+
+- name: Check if httpd.conf exists for backup
+  ansible.builtin.stat:
+    path: /etc/httpd/conf/httpd.conf
+  register: httpd_conf_stat
+
+- name: Ensure httpd backup directory exists
+  ansible.builtin.file:
+    path: "/var/ansible/backup/"
+    state: directory
+    mode: '0700'
+  when:
+    # Only create the dir if httpd.conf file actually exists
+    - httpd_conf_stat.stat.exists | default(false)
+
+- name: Backup /etc/httpd/conf/httpd.conf
+  ansible.builtin.copy:
+    src: /etc/httpd/conf/httpd.conf
+    dest: "/var/ansible/backup/httpd.conf.backup-{{ ansible_date_time.iso8601_basic_short }}"
+    remote_src: true  # Correct: copy on the remote machine
+    force: false
+    mode: '0600'
+  when:
+    # Only copy if the file actually exists
+    - httpd_conf_stat.stat.exists | default(false)
+
+# --- DEBUG TASK ---
+# - name: "DEBUG: Packages targeted for removal"
+#   ansible.builtin.debug:
+#     # Print the calculated list
+#     var: final_packages_to_remove
+
+# - name: Remove non-required packages from the baseline list
+#   ansible.builtin.package:
+#     name: "{{ item }}" # The item is now just the package name to remove
+#     state: absent
+#   # Loop over the final calculated list
+#   loop: "{{ final_packages_to_remove }}"

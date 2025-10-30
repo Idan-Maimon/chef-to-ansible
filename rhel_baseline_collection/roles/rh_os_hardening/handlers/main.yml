@@ -1,0 +1,14 @@
+---
+- name: restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+
+- name: restart systemd-journald
+  ansible.builtin.service:
+    name: systemd-journald
+    state: restarted
+
+- name: reload sysctl
+  ansible.builtin.command: sysctl --system
+  listen: reload sysctl
