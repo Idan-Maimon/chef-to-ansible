@@ -1,0 +1,15 @@
+---
+- name: Check Host Groups
+  # 'all' means this will run on every host in your Satellite inventory
+  hosts: all
+  
+  # We don't need to gather facts (like CPU, memory) for this simple task
+  gather_facts: false
+  
+  # This makes the output cleaner by running on one host at a time
+  serial: 1
+
+  tasks:
+    - name: Display all groups for this host
+      ansible.builtin.debug:
+        msg: "Host '{{ inventory_hostname }}' is a member of: {{ group_names }}"
