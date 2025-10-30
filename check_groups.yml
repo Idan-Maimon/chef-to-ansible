@@ -13,3 +13,19 @@
     - name: Display all groups for this host
       ansible.builtin.debug:
         msg: "Host '{{ inventory_hostname }}' is a member of: {{ group_names }}"
+
+- name: Check All Host Variables
+  hosts: all
+  
+  # We set this to 'false' to *only* see variables from
+  # Satellite/AAP, not discovered facts (like CPU, disk, etc.)
+  gather_facts: false
+  
+  # Makes the output log readable by running on one host at a time
+  serial: 1
+
+  tasks:
+    - name: Display all Satellite/AAP variables for this host
+      ansible.builtin.debug:
+        # 'vars' is the special variable holding everything
+        var: vars
