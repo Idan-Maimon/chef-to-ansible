@@ -1,7 +1,7 @@
 ---
 - name: Check Host Groups
   # 'all' means this will run on every host in your Satellite inventory
-  hosts: all
+  hosts: node1.example.com
   
   # We don't need to gather facts (like CPU, memory) for this simple task
   gather_facts: true
